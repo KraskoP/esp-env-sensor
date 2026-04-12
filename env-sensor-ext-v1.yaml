@@ -1,0 +1,367 @@
+# version v1 - initial version
+# First release of my project of envirnoment sensor
+# Device info
+# d1_mini
+# by Espressif with sensors:
+#    bme280: humidity, temperature, pressure
+#  
+#    bh1750: illuminance
+#
+#    sensiron: air quality
+#
+#    display
+#
+#    switch to chage display info
+
+substitutions:
+  devicename: backyard
+
+esphome:
+  name: ${devicename}-env-sensor
+  friendly_name: ${devicename} env-sensor
+#  platform: ESP8266
+#  board: d1_mini
+  on_boot:
+    priority: 800
+    then:
+      - display.page.show: page4
+
+#esphome:
+#  name: env-sensor
+#  friendly_name: env-sensor
+
+esp8266:
+  board: esp01_1m
+
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "jvI2HuihFCfT/+uKBs2oNwEAUnDc2nZPkIXQZdaB9qI="
+
+
+wifi:
+  min_auth_mode: WPA2
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+ 
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "EnvSensor"
+    password: !secret wifi_fallback_password
+
+
+captive_portal:
+
+
+ota:
+  - platform: esphome  
+    password: !secret ota_pass
+
+
+ 
+web_server:
+  port: 80
+  auth:
+    username: !secret web_server_username
+    password: !secret web_server_password
+
+i2c:
+  sda: GPIO4
+  scl: GPIO5
+  scan: True
+  id: bus_a
+  frequency: 50kHz
+
+# DS18B20 TEMPERATURE SENSOR DETECT
+one_wire:
+  - platform: gpio
+    pin: GPIO12
+    id: hub_1
+
+
+binary_sensor:
+  - platform: status
+    name: ${devicename} Status
+    id: esp_status
+
+  - platform: gpio
+    name: "Podswietlenie wyswietlacza"
+    pin:
+      number: GPIO13
+      mode:
+        input: true
+        pullup: true
+#    device_class: light    
+#    id: oled_display_on
+    on_press:
+      then:
+#        - display.page.show_next: oled_display
+#        - component.update: oled_display
+#        - delay: 2s
+#        - display.page.show_next: oled_display
+#        - component.update: oled_display
+#        - delay: 2s
+
+        - display.page.show: page1
+        - delay: 2s
+        - display.page.show: page2
+        - delay: 2s
+        - display.page.show: page3                 
+        - delay: 2s
+        - display.page.show: page4
+   
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: ${devicename} IP Address
+      id: esp_ip
+    ssid:
+      name: ${devicename} WIFI SSID
+      id: esp_ssid
+    mac_address:
+      name: ${devicename} MAC Address
+      id: esp_mac
+     
+sensor:
+
+  - platform: dallas_temp
+#    address: 0x33000000368c9128
+    address: 0xb406259122534e28
+    one_wire_id: hub_1
+    name: "temp_ext"
+    id: temp01
+
+
+  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
+    name: ${devicename} WiFi Signal dB
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+
+  - platform: copy # Reports the WiFi signal strength in %
+    source_id: wifi_signal_db
+    name: ${devicename} WiFi Signal %
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: " %"
+    entity_category: "diagnostic"
+    id: wifi_signal_prc
+
+
+#sensor:
+  - platform: adc
+    pin: VCC
+    name: ${devicename} Voltage
+   
+  - platform: bme280_i2c
+    temperature:
+      name: ${devicename} Temperature
+      id: bme280_temperature
+#      oversampling: 16x
+    pressure:
+      name: ${devicename} Pressure
+      id: bme280_pressure
+    humidity:
+      name: ${devicename} Humidity
+      id: bme280_humidity
+#    address: 0x76
+#    update_interval: 60s
+   
+   
+  - platform: bh1750
+    name: ${devicename} Illuminance
+    id: bh1750_illuminance
+    address: 0x23
+#    measurement_duration: 69
+#    update_interval: 10s
+
+  - platform: sps30
+    pm_1_0:
+      name: ${devicename} PM <1µm Weight concentration
+      id: "PM_1_0"
+    pm_2_5:
+      name: ${devicename} PM <2.5µm Weight concentration
+      id: "PM_2_5"
+    pm_4_0:
+      name: ${devicename} PM <4µm Weight concentration
+      id: "PM_4_0"
+    pm_10_0:
+      name: ${devicename} PM <10µm Weight concentration
+      id: "PM_10_0"
+    pmc_0_5:
+      name: ${devicename} PM <0.5µm Number concentration
+      id: "PMC_0_5"
+    pmc_1_0:
+      name: ${devicename} PM <1µm Number concentration
+      id: "PMC_1_0"
+    pmc_2_5:
+      name: ${devicename} PM <2.5µm Number concentration
+      id: "PMC_2_5"
+    pmc_4_0:
+      name: ${devicename} PM <4µm Number concentration
+      id: "PMC_4_0"
+    pmc_10_0:
+      name: ${devicename} PM <10µm Number concentration
+      id: "PMC_10_0"
+    address: 0x69
+#    update_interval: 60s
+
+
+# przyklad wejscia do sterowania wyswietlaczem
+
+
+display:
+  - platform: ssd1306_i2c
+    id: oled_display
+#    model: "SSD1306 128x64"
+    model: "SH1106 128x64"
+#    model: "SSD1305 128x64"
+
+#    address: 0x78
+    address: 0x3C
+#    contrast: 0.5
+   
+
+    pages:
+      - id: page1
+        lambda: |-
+          it.rectangle(0, 0, 126, 15);
+          it.printf(64,12, id(font1), TextAlign::BASELINE_CENTER, "Air Quality");
+          it.printf(1, 27, id(font1), TextAlign::BASELINE_LEFT, "PM 1:");
+          it.printf(125, 27, id(font1), TextAlign::BASELINE_RIGHT, "%.2f ug/m3", id(PM_1_0).state);
+          it.printf(1, 39, id(font1), TextAlign::BASELINE_LEFT, "PM 2.5:");
+          it.printf(125, 39, id(font1), TextAlign::BASELINE_RIGHT, "%.2f ug/m3", id(PM_2_5).state);
+          it.printf(1, 51, id(font1), TextAlign::BASELINE_LEFT, "PM 4:");
+          it.printf(125, 51, id(font1), TextAlign::BASELINE_RIGHT, "%.2f ug/m3", id(PM_4_0).state);
+          it.printf(1, 63, id(font1), TextAlign::BASELINE_LEFT, "PM 10:");
+          it.printf(125, 63, id(font1), TextAlign::BASELINE_RIGHT, "%.2f ug/m3", id(PM_10_0).state);
+      - id: page2
+        lambda: |-
+          it.rectangle(0, 0, 126, 15);
+          it.printf(64,12, id(font1), TextAlign::BASELINE_CENTER, "Environment");
+          it.printf(1, 27, id(font1), TextAlign::BASELINE_LEFT, "Temperature:");
+          it.printf(125, 27, id(font1), TextAlign::BASELINE_RIGHT, "%.0f C", id(bme280_temperature).state);
+          it.printf(1, 39, id(font1), TextAlign::BASELINE_LEFT, "Pressure:");
+          it.printf(125, 39, id(font1), TextAlign::BASELINE_RIGHT, "%.0f hPa", id(bme280_pressure).state);
+          it.printf(1, 51, id(font1), TextAlign::BASELINE_LEFT, "Humidity:");
+          it.printf(125, 51, id(font1), TextAlign::BASELINE_RIGHT, "%.0f %%", id(bme280_humidity).state);
+          it.printf(1, 63, id(font1), TextAlign::BASELINE_LEFT, "Illuminance:");
+          it.printf(125, 63, id(font1), TextAlign::BASELINE_RIGHT, "%.2f lx", id(bh1750_illuminance).state);
+      - id: page3
+        lambda: |-
+          it.rectangle(0, 0, 126, 15);
+          it.printf(64,12, id(font1), TextAlign::BASELINE_CENTER, "Network");
+          it.printf(1, 27, id(font1), TextAlign::BASELINE_LEFT, "SSID:");
+          it.printf(125, 27, id(font1), TextAlign::BASELINE_RIGHT, "%s", id(esp_ssid).state.c_str());
+          it.printf(1, 39, id(font1), TextAlign::BASELINE_LEFT, "IP");
+          it.printf(125, 39, id(font1), TextAlign::BASELINE_RIGHT, "%s", id(esp_ip).state.c_str());
+          it.printf(1, 51, id(font1), TextAlign::BASELINE_LEFT, "Mac:");
+          it.printf(125, 51, id(font1), TextAlign::BASELINE_RIGHT, "%s", id(esp_mac).state.c_str());
+          it.printf(1, 63, id(font1), TextAlign::BASELINE_LEFT, "Signal:");
+          it.printf(125, 63, id(font1), TextAlign::BASELINE_RIGHT, "%.2f", id(wifi_signal_prc).state);
+      - id: page4    
+        lambda: |-
+          it.printf(64,12, id(font1), TextAlign::BASELINE_CENTER, " ");
+
+#interval:
+#  - interval: 5s
+#    then:
+#      - display.page.show_next: oled_display
+#      - component.update: oled_display  
+   
+   
+   
+   
+
+
+font:
+  - file: "gfonts://Roboto"
+#    id: my_font
+#    size: 11
+#    bpp: 2  
+#  - file: 'fonts/arial.ttf'
+    id: font1
+    size: 11
+    glyphs:
+    - ' '
+    - '/'
+    - '!'
+    - '"'
+    - '%'
+    - (
+    - )
+    - +
+    - ','
+    - '-'
+    - .
+    - '0'
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - '5'
+    - '6'
+    - '7'
+    - '8'
+    - '9'
+    - ':'
+    - A
+    - B
+    - C
+    - D
+    - E
+    - F
+    - G
+    - H
+    - I
+    - J
+    - K
+    - L
+    - M
+    - N
+    - O
+    - P
+    - Q
+    - R
+    - S
+    - T
+    - U
+    - V
+    - W
+    - X
+    - Y
+    - Z
+    - _
+    - a
+    - b
+    - c
+    - d
+    - e
+    - f
+    - g
+    - h
+    - i
+    - j
+    - k
+    - l
+    - m
+    - n
+    - o
+    - p
+    - q
+    - r
+    - s
+    - t
+    - u
+    - v
+    - w
+    - x
+    - y
+    - z
+    - °
+   
