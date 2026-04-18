@@ -1,4 +1,4 @@
-# version v1 - initial version
+# version v2 - version with improvements
 # First release of my project of envirnoment sensor
 # Device info
 # d1_mini
@@ -44,10 +44,14 @@ api:
 
 
 wifi:
-  min_auth_mode: WPA2
+  min_auth_mode: WPA
   ssid: !secret wifi_ssid
   password: !secret wifi_password
- 
+  # Optional manual IP
+  manual_ip:
+    static_ip: 192.168.100.101
+    gateway: 192.168.100.1
+    subnet: 255.255.255.0
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
@@ -92,7 +96,7 @@ binary_sensor:
   - platform: gpio
     name: "Podswietlenie wyswietlacza"
     pin:
-      number: GPIO13
+      number: GPIO2
       mode:
         input: true
         pullup: true
@@ -134,7 +138,7 @@ sensor:
     address: 0xb406259122534e28
     one_wire_id: hub_1
     name: "temp_ext"
-    id: temp01
+    id: external_temp
 
 
   - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
@@ -154,21 +158,59 @@ sensor:
 
 
 #sensor:
+
+  - platform: bmp280_i2c
+    address: 0x77
+    update_interval: 60s
+    temperature:
+      name: "BMP temp"
+      oversampling: 2x
+    pressure:
+      name: "BMP Pressure"
+      id: bmp280_preassure
+
+  - platform: aht10
+    variant: AHT10
+    address: 0x38
+    update_interval: 60s
+    temperature:
+      name: "AHT20 temp"
+      id: aht20_temp
+      accuracy_decimals: 1
+      filters:
+      - filter_out: 0.0
+      - median:
+          window_size: 3
+          send_every: 3
+          send_first_at: 1
+    humidity:
+      name: "AHT20 humidity"
+      id: aht20_humidity
+      accuracy_decimals: 1
+      filters:
+      - filter_out: 0.0
+      - median:
+          window_size: 3
+          send_every: 3
+          send_first_at: 1
+
+
+
   - platform: adc
     pin: VCC
     name: ${devicename} Voltage
    
-  - platform: bme280_i2c
-    temperature:
-      name: ${devicename} Temperature
-      id: bme280_temperature
+#  - platform: bme280_i2c
+#    temperature:
+#      name: ${devicename} Temperature
+#      id: bme280_temperature
 #      oversampling: 16x
-    pressure:
-      name: ${devicename} Pressure
-      id: bme280_pressure
-    humidity:
-      name: ${devicename} Humidity
-      id: bme280_humidity
+#    pressure:
+#      name: ${devicename} Pressure
+#      id: bme280_pressure
+#    humidity:
+#      name: ${devicename} Humidity
+#      id: bme280_humidity
 #    address: 0x76
 #    update_interval: 60s
    
@@ -245,11 +287,11 @@ display:
           it.rectangle(0, 0, 126, 15);
           it.printf(64,12, id(font1), TextAlign::BASELINE_CENTER, "Environment");
           it.printf(1, 27, id(font1), TextAlign::BASELINE_LEFT, "Temperature:");
-          it.printf(125, 27, id(font1), TextAlign::BASELINE_RIGHT, "%.0f C", id(bme280_temperature).state);
+          it.printf(125, 27, id(font1), TextAlign::BASELINE_RIGHT, "%.1f C", id(external_temp).state);
           it.printf(1, 39, id(font1), TextAlign::BASELINE_LEFT, "Pressure:");
-          it.printf(125, 39, id(font1), TextAlign::BASELINE_RIGHT, "%.0f hPa", id(bme280_pressure).state);
+          it.printf(125, 39, id(font1), TextAlign::BASELINE_RIGHT, "%.0f hPa", id(bmp280_preassure).state);
           it.printf(1, 51, id(font1), TextAlign::BASELINE_LEFT, "Humidity:");
-          it.printf(125, 51, id(font1), TextAlign::BASELINE_RIGHT, "%.0f %%", id(bme280_humidity).state);
+          it.printf(125, 51, id(font1), TextAlign::BASELINE_RIGHT, "%.1f %%", id(aht20_humidity).state);
           it.printf(1, 63, id(font1), TextAlign::BASELINE_LEFT, "Illuminance:");
           it.printf(125, 63, id(font1), TextAlign::BASELINE_RIGHT, "%.2f lx", id(bh1750_illuminance).state);
       - id: page3
@@ -364,4 +406,3 @@ font:
     - y
     - z
     - °
-   
