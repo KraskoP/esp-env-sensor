@@ -44,14 +44,15 @@ api:
 
 
 wifi:
-  min_auth_mode: WPA
+  min_auth_mode: WPA2
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  output_power: 15dBm
   # Optional manual IP
-  manual_ip:
-    static_ip: 192.168.100.101
-    gateway: 192.168.100.1
-    subnet: 255.255.255.0
+  # manual_ip:
+  #  static_ip: 192.168.100.101
+  #  gateway: 192.168.100.1
+  #  subnet: 255.255.255.0
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
@@ -112,11 +113,11 @@ binary_sensor:
 #        - delay: 2s
 
         - display.page.show: page1
-        - delay: 2s
+        - delay: 3s
         - display.page.show: page2
-        - delay: 2s
+        - delay: 3s
         - display.page.show: page3                 
-        - delay: 2s
+        - delay: 3s
         - display.page.show: page4
    
 text_sensor:
